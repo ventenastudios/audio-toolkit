@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audio Toolkit — Strumenti Professionali per Musicisti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a09;
+      --bg2:       #111110;
+      --bg3:       #1a1a18;
+      --border:    #2a2a26;
+      --amber:     #e8a020;
+      --amber-dim: #a06a10;
+      --amber-glow:#e8a02033;
+      --green:     #4ade80;
+      --red:       #f87171;
+      --text:      #e8e4d8;
+      --muted:     #7a7870;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* ── Custom cursor ── */
+    .cursor {
+      position: fixed; top: 0; left: 0; z-index: 9999;
+      width: 10px; height: 10px;
+      background: var(--amber);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: transform .12s ease, width .2s, height .2s, background .2s;
+      mix-blend-mode: screen;
+    }
+    .cursor.expand { width: 36px; height: 36px; background: var(--amber-glow); }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; opacity: .5;
+    }
+
+    /* ── VU scanline ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,.08) 2px,
+        rgba(0,0,0,.08) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,9,.85);
+      backdrop-filter: blur(12px);
+    }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px; max-width: 1180px; margin: 0 auto; padding: 0 24px;
+    }
+    .logo {
+      font-family: var(--font-display);
+      font-size: 1.5rem; letter-spacing: .08em;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .logo span { color: var(--text); }
+    nav ul { display: flex; gap: 32px; list-style: none; }
+    nav a {
+      font-family: var(--font-mono); font-size: .75rem; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted); text-decoration: none;
+      transition: color .2s;
+    }
+    nav a:hover { color: var(--amber); }
+    .nav-cta {
+      font-family: var(--font-mono); font-size: .75rem; letter-spacing: .1em;
+      text-transform: uppercase; padding: 8px 18px;
+      border: 1px solid var(--amber); color: var(--amber);
+      text-decoration: none; transition: background .2s, color .2s;
+    }
+    .nav-cta:hover { background: var(--amber); color: var(--bg); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 160px 0 100px;
+      position: relative; overflow: hidden;
+    }
+    .hero-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono); font-size: .7rem; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--amber);
+      border: 1px solid var(--amber-dim); padding: 5px 12px;
+      margin-bottom: 28px;
+      animation: fadeUp .6s ease both;
+    }
+    .hero-badge::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--amber);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: .3; }
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(3.5rem, 7vw, 6.5rem);
+      line-height: .95; letter-spacing: .02em;
+      animation: fadeUp .7s .1s ease both;
+    }
+    h1 em { color: var(--amber); font-style: normal; }
+    .hero-sub {
+      margin-top: 24px; font-size: 1.05rem; line-height: 1.7;
+      color: var(--muted); max-width: 480px;
+      animation: fadeUp .7s .2s ease both;
+    }
+    .hero-actions {
+      display: flex; gap: 16px; margin-top: 40px; flex-wrap: wrap;
+      animation: fadeUp .7s .3s ease both;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--amber); color: var(--bg);
+      font-family: var(--font-mono); font-size: .8rem; letter-spacing: .1em;
+      text-transform: uppercase; text-decoration: none;
+      padding: 14px 28px; font-weight: 500;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--amber-glow); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 10px;
+      border: 1px solid var(--border); color: var(--text);
+      font-family: var(--font-mono); font-size: .8rem; letter-spacing: .1em;
+      text-transform: uppercase; text-decoration: none;
+      padding: 14px 28px;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-secondary:hover { border-color: var(--amber); color: var(--amber); }
+
+    /* VU Meter animato */
+    .vu-visual {
+      display: flex; flex-direction: column; gap: 6px;
+      animation: fadeUp .8s .2s ease both;
+    }
+    .vu-row { display: flex; align-items: center; gap: 10px; }
+    .vu-label { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); width: 28px; text-align: right; }
+    .vu-bar-wrap {
+      flex: 1; height: 10px; background: var(--bg3);
+      border: 1px solid var(--border); overflow: hidden;
+    }
+    .vu-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4ade80 0%, #facc15 70%, #f87171 90%);
+      transform-origin: left;
+      animation: vuAnim var(--dur, 2s) var(--del, 0s) ease-in-out infinite alternate;
+    }
+    @keyframes vuAnim {
+      0%   { transform: scaleX(var(--from, .3)); }
+      100% { transform: scaleX(var(--to,   .9)); }
+    }
+    .vu-db { font-family: var(--font-mono); font-size: .65rem; color: var(--amber); width: 40px; }
+
+    .hero-stats {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 1px;
+      border: 1px solid var(--border); margin-top: 60px;
+      animation: fadeUp .7s .4s ease both;
+    }
+    .stat {
+      padding: 20px 24px; background: var(--bg2);
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-num {
+      font-family: var(--font-display); font-size: 2.2rem; color: var(--amber);
+      line-height: 1;
+    }
+    .stat-label { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-top: 4px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 48px; padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-tag {
+      font-family: var(--font-mono); font-size: .7rem; color: var(--amber);
+      letter-spacing: .15em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    h2 {
+      font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1; letter-spacing: .03em;
+    }
+    .section-count { font-family: var(--font-mono); font-size: .75rem; color: var(--muted); }
+
+    /* ── TOOLS SECTION ── */
+    .tools { padding: 100px 0; }
+
+    /* Filter bar */
+    .filter-bar {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 40px;
+    }
+    .filter-btn {
+      font-family: var(--font-mono); font-size: .7rem; letter-spacing: .1em;
+      text-transform: uppercase; padding: 7px 16px;
+      border: 1px solid var(--border); background: transparent; color: var(--muted);
+      cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      border-color: var(--amber); color: var(--amber); background: var(--amber-glow);
+    }
+
+    /* Grid */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1px; background: var(--border);
+    }
+
+    /* Card */
+    .tool-card {
+      background: var(--bg2); padding: 32px;
+      display: flex; flex-direction: column; gap: 16px;
+      text-decoration: none; color: inherit;
+      transition: background .2s; position: relative; overflow: hidden;
+    }
+    .tool-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--amber); transform: scaleX(0); transform-origin: left;
+      transition: transform .3s ease;
+    }
+    .tool-card:hover { background: var(--bg3); }
+    .tool-card:hover::before { transform: scaleX(1); }
+
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+    .card-icon {
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border); font-size: 1.2rem;
+      background: var(--bg);
+    }
+    .card-badge {
+      font-family: var(--font-mono); font-size: .6rem; letter-spacing: .1em;
+      text-transform: uppercase; padding: 4px 10px;
+      border: 1px solid; 
+    }
+    .badge-free   { color: var(--green); border-color: var(--green); }
+    .badge-new    { color: var(--amber); border-color: var(--amber); }
+    .badge-coming { color: var(--muted); border-color: var(--border); }
+
+    .card-category {
+      font-family: var(--font-mono); font-size: .65rem; color: var(--amber);
+      letter-spacing: .12em; text-transform: uppercase;
+    }
+    .card-title { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: .03em; line-height: 1.1; }
+    .card-desc { font-size: .88rem; line-height: 1.65; color: var(--muted); }
+
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border);
+    }
+    .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag {
+      font-family: var(--font-mono); font-size: .6rem; letter-spacing: .08em;
+      text-transform: uppercase; padding: 3px 8px; background: var(--bg);
+      border: 1px solid var(--border); color: var(--muted);
+    }
+    .card-arrow {
+      font-size: 1rem; color: var(--amber); opacity: 0;
+      transform: translateX(-8px);
+      transition: opacity .2s, transform .2s;
+    }
+    .tool-card:hover .card-arrow { opacity: 1; transform: translateX(0); }
+
+    /* Disabled card */
+    .tool-card.disabled { opacity: .5; cursor: default; pointer-events: none; }
+
+    /* ── CTA BAND ── */
+    .cta-band {
+      margin: 0 0 100px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      display: grid; grid-template-columns: 1fr auto;
+      align-items: center; gap: 40px; padding: 48px 56px;
+      position: relative; overflow: hidden;
+    }
+    .cta-band::after {
+      content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 300px;
+      background: radial-gradient(ellipse at right center, var(--amber-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-band h3 {
+      font-family: var(--font-display); font-size: clamp(1.8rem, 3vw, 2.6rem);
+      letter-spacing: .03em; line-height: 1.1;
+    }
+    .cta-band h3 em { color: var(--amber); font-style: normal; }
+    .cta-band p { font-size: .9rem; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+    .footer-inner {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .footer-logo { font-family: var(--font-display); font-size: 1.2rem; color: var(--amber); }
+    .footer-logo span { color: var(--muted); }
+    .footer-copy { font-family: var(--font-mono); font-size: .65rem; color: var(--muted); letter-spacing: .08em; }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a {
+      font-family: var(--font-mono); font-size: .65rem; color: var(--muted);
+      text-decoration: none; letter-spacing: .08em; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--amber); }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .vu-visual { display: none; }
+      .hero-stats { grid-template-columns: 1fr; }
+      .stat { border-right: none; border-bottom: 1px solid var(--border); }
+      .cta-band { grid-template-columns: 1fr; padding: 36px 28px; }
+      nav ul { display: none; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<!-- HEADER -->
+<header>
+  <nav>
+    <a href="#" class="logo">AUDIO<span>TOOLKIT</span></a>
+    <ul>
+      <li><a href="#tools">Tools</a></li>
+      <li><a href="#studio">Studio</a></li>
+      <li><a href="#contatti">Contatti</a></li>
+    </ul>
+    <a href="#studio" class="nav-cta">Richiedi Mix &amp; Master</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-badge">Toolkit Professionale — Accesso Gratuito</div>
+        <h1>STRUMENTI<br>PER <em>AUDIO</em><br>SERI.</h1>
+        <p class="hero-sub">Analizza, ottimizza e perfeziona il tuo mix con strumenti professionali. Gratuiti. Sempre.</p>
+        <div class="hero-actions">
+          <a href="#tools" class="btn-primary">
+            <span>↓</span> Esplora i Tool
+          </a>
+          <a href="#studio" class="btn-secondary">
+            <span>◈</span> Servizi Studio
+          </a>
+        </div>
+      </div>
+
+      <!-- VU Meter animato -->
+      <div class="vu-visual">
+        <div class="vu-row">
+          <span class="vu-label">L</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:1.8s;--del:0s;--from:.5;--to:.92"></div></div>
+          <span class="vu-db">−2.1 dB</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">R</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:2.1s;--del:.2s;--from:.45;--to:.88"></div></div>
+          <span class="vu-db">−2.8 dB</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">M</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:1.6s;--del:.1s;--from:.6;--to:.85"></div></div>
+          <span class="vu-db">−3.2 dB</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">S</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:2.4s;--del:.3s;--from:.2;--to:.55"></div></div>
+          <span class="vu-db">−9.1 dB</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">SUB</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:1.9s;--del:.4s;--from:.4;--to:.78"></div></div>
+          <span class="vu-db">−4.5 dB</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">MID</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:2.2s;--del:.15s;--from:.55;--to:.82"></div></div>
+          <span class="vu-db">−3.8 dB</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">HI</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:1.7s;--del:.25s;--from:.3;--to:.65"></div></div>
+          <span class="vu-db">−6.2 dB</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">TP</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:2.0s;--del:.05s;--from:.7;--to:.96"></div></div>
+          <span class="vu-db">−0.8 dBTP</span>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">LUFS</span>
+          <div class="vu-bar-wrap"><div class="vu-bar" style="--dur:3s;--del:0s;--from:.68;--to:.72"></div></div>
+          <span class="vu-db">−14 LUFS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">9+</div>
+        <div class="stat-label">Tool Disponibili</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">Gratuiti</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Analisi Illimitate</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section class="tools" id="tools">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <div class="section-tag">// 01 — Strumenti</div>
+        <h2>IL TOOLKIT</h2>
+      </div>
+      <div class="section-count" id="toolCount"></div>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">Tutti</button>
+      <button class="filter-btn" data-filter="analisi">Analisi</button>
+      <button class="filter-btn" data-filter="produzione">Produzione</button>
+      <button class="filter-btn" data-filter="utility">Utility</button>
+      <button class="filter-btn" data-filter="ai">AI</button>
+    </div>
+
+    <div class="tools-grid" id="toolsGrid">
+
+      <!-- ── TOOL 1 ── -->
+      <a href="https://tuolink.streamlit.app" class="tool-card" data-cat="analisi" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">📊</div>
+          <span class="card-badge badge-free">Free</span>
+        </div>
+        <div class="card-category">Analisi</div>
+        <div class="card-title">Mix & Master Analyzer</div>
+        <div class="card-desc">Analizza il tuo brano in profondità: spettro, dinamica, fase, loudness. Il punto di partenza di ogni buon mix.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">Spettro</span>
+            <span class="tag">Dinamica</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- ── TOOL 2 ── -->
+      <a href="#" class="tool-card" data-cat="analisi" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">📻</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-category">Analisi</div>
+        <div class="card-title">Loudness Meter</div>
+        <div class="card-desc">Misura LUFS integrato, LRA e True Peak. Verifica la conformità agli standard Spotify, Apple Music, YouTube.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">LUFS</span>
+            <span class="tag">True Peak</span>
+            <span class="tag">Streaming</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      
+      <!-- ── TOOL 3 ── -->
+      <a href="#" class="tool-card" data-cat="analisi" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">↔️</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-category">Analisi</div>
+        <div class="card-title">Stereo Field Analyzer</div>
+        <div class="card-desc">Visualizza correlation meter, balance Mid/Side e compatibilità mono. Scopri se il tuo stereo regge su ogni sistema.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">Mid/Side</span>
+            <span class="tag">Fase</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- ── TOOL 4 ── -->
+      <a href="#" class="tool-card" data-cat="analisi" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">🔬</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-category">Analisi</div>
+        <div class="card-title">Spectrum Comparator</div>
+        <div class="card-desc">Confronta la curva spettrale del tuo brano con un riferimento commerciale. Vedi esattamente dove intervenire.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">Reference</span>
+            <span class="tag">EQ</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- ── TOOL 5 ── -->
+      <a href="#" class="tool-card" data-cat="produzione" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">🎵</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-category">Produzione</div>
+        <div class="card-title">BPM & Key Detector</div>
+        <div class="card-desc">Analizza automaticamente il BPM preciso e la tonalità del tuo brano. Essenziale per DJ e producer.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">BPM</span>
+            <span class="tag">Tonalità</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- ── TOOL 6 ── -->
+      <a href="#" class="tool-card" data-cat="utility" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">🏠</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-category">Utility</div>
+        <div class="card-title">Room Mode Calculator</div>
+        <div class="card-desc">Inserisci le dimensioni della tua stanza e calcola le frequenze problematiche. Indispensabile per l'home studio.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">Acustica</span>
+            <span class="tag">Home Studio</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- ── TOOL 7 ── -->
+      <a href="#" class="tool-card" data-cat="utility" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">⏱️</div>
+          <span class="card-badge badge-new">New</span>
+        </div>
+        <div class="card-category">Utility</div>
+        <div class="card-title">Delay & Reverb Calculator</div>
+        <div class="card-desc">Calcola i tempi di delay e riverbero sincronizzati al BPM, con tutte le suddivisioni ritmiche e dotted/triplet.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">Delay</span>
+            <span class="tag">Reverb</span>
+            <span class="tag">BPM Sync</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- ── TOOL 8 (AI) ── -->
+      <a href="#" class="tool-card" data-cat="ai" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">🤖</div>
+          <span class="card-badge badge-coming">Presto</span>
+        </div>
+        <div class="card-category">AI</div>
+        <div class="card-title">AI Mix Feedback</div>
+        <div class="card-desc">Carica il tuo brano e ricevi un report testuale dettagliato con suggerimenti su EQ, compressione, spazio stereo e loudness.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">AI</span>
+            <span class="tag">Report</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- ── TOOL 9 (Stem Export) ── -->
+      <a href="#" class="tool-card" data-cat="utility" target="_blank">
+        <div class="card-top">
+          <div class="card-icon">📋</div>
+          <span class="card-badge badge-coming">Presto</span>
+        </div>
+        <div class="card-category">Utility</div>
+        <div class="card-title">Stem Export Checklist</div>
+        <div class="card-desc">Guida interattiva per esportare gli stem correttamente prima di inviarli allo studio. Zero errori, zero rilavorazioni.</div>
+        <div class="card-footer">
+          <div class="card-tags">
+            <span class="tag">Workflow</span>
+            <span class="tag">Stem</span>
+          </div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+    </div><!-- /tools-grid -->
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<section id="studio">
+  <div class="container">
+    <div class="cta-band">
+      <div>
+        <h3>I TOOL MOSTRANO IL PROBLEMA.<br><em>NOI LO RISOLVIAMO.</em></h3>
+        <p>Hai analizzato il tuo brano e vuoi portarlo al livello successivo? Il nostro studio offre servizi professionali di mix e mastering.</p>
+      </div>
+      <a href="mailto:tuo@email.com" class="btn-primary" style="white-space:nowrap">
+        ◈ Contattaci
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="contatti">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">AUDIO<span>TOOLKIT</span></div>
+      <div class="footer-copy">© 2025 — Tutti i diritti riservati</div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="mailto:tuo@email.com">Email</a>
+        <a href="#">Instagram</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* Cursor */
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top  = e.clientY + 'px';
+  });
+  document.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('expand'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('expand'));
+  });
+
+  /* Filter */
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const cards = document.querySelectorAll('.tool-card');
+  const countEl = document.getElementById('toolCount');
+
+  function updateCount(visible) {
+    countEl.textContent = visible + ' tool disponibili';
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      let visible = 0;
+      cards.forEach(card => {
+        const show = filter === 'all' || card.dataset.cat === filter;
+        card.style.display = show ? 'flex' : 'none';
+        if (show) visible++;
+      });
+      updateCount(visible);
+    });
+  });
+
+  updateCount(cards.length);
+
+  /* Scroll reveal */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: .08 });
+
+  cards.forEach((card, i) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = `opacity .5s ${i * .06}s ease, transform .5s ${i * .06}s ease`;
+    observer.observe(card);
+  });
+</script>
+</body>
+</html>
